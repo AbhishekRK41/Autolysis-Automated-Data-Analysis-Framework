@@ -1,60 +1,73 @@
-# tds_project2
-# Autolysis: Automated Data Analysis Framework
+# Autolysis — Automated Data Analysis Framework
 
-## Overview
-Autolysis is an automated data analysis framework that processes any valid CSV file to generate meaningful insights, visualizations, and a detailed Markdown report. Designed to be flexible and efficient, the script performs a wide range of analyses, including detecting outliers, clustering, correlation analysis, and more.
+Point Autolysis at any CSV and it profiles the data, runs outlier detection, clustering, and feature-importance analysis, generates visualizations, and asks an LLM to narrate the findings — producing a complete `README.md` report with embedded charts, with zero manual analysis.
 
-The tool also integrates with a language model (LLM) to provide narrative insights based on the dataset, making it highly adaptable for various datasets like books, happiness metrics, and media.
+## What it does
 
----
+1. **Profiles the dataset** — summary statistics and a missing-value breakdown for every column.
+2. **Detects outliers** using z-scores on numeric columns.
+3. **Clusters rows** with k-means (3 clusters) to surface natural groupings.
+4. **Ranks feature importance** with a Random Forest regressor.
+5. **Visualizes** the data — a correlation heatmap plus a distribution plot per numeric column.
+6. **Narrates the results** by sending the summary stats, missing-value report, and outliers to an LLM (via a hosted OpenAI-compatible proxy) and writing its analysis into the report.
+7. **Writes it all to `README.md`** in the working directory, with the PNG charts embedded inline.
 
-## Features
-1. **Automated Analysis**:
-   - Generates summary statistics for the dataset.
-   - Detects missing values and highlights areas for improvement.
-   - Identifies outliers using statistical methods (Z-scores).
+## Architecture
 
-2. **Machine Learning Techniques**:
-   - Clustering using K-means to group data naturally.
-   - Feature importance using Random Forest to identify key predictors (optional).
+```
+autolysis.py
+├── detect_outliers()        # z-score based outlier detection
+├── perform_clustering()     # k-means over numeric columns
+├── feature_importance()     # RandomForestRegressor feature ranking
+├── create_visualizations()  # correlation heatmap + per-column distributions
+├── query_llm()              # sends dataset summary to an LLM for narrative insights
+├── generate_readme()        # assembles everything into README.md
+└── main()                   # CLI entry point — reads argv[1] as the CSV path
+```
 
-3. **Data Visualization**:
-   - Creates a correlation heatmap to explore relationships between variables.
-   - Generates distribution plots for all numeric columns.
+The script is self-contained: it checks for its own dependencies at import time and pip-installs anything missing, so a bare `python autolysis.py` on a fresh machine will bootstrap itself.
 
-4. **AI-Powered Insights**:
-   - Queries a language model (LLM) to provide high-level insights, interpret findings, and suggest actionable recommendations.
+Sample runs are included for three datasets — `goodreads/`, `happiness/`, and `media/` — each with its own generated report and charts, so you can see example output without running anything.
 
-5. **Customizable Output**:
-   - Saves analysis results in a `README.md` file.
-   - Outputs visualizations in `.png` format for easy embedding.
+## Setup
 
----
+**Requirements:** Python 3.11+
 
-## Directory Structure
-The output files are organized as follows:
+```bash
+git clone https://github.com/AbhishekRK41/Autolysis-Automated-Data-Analysis-Framework.git
+cd Autolysis-Automated-Data-Analysis-Framework
+pip install pandas matplotlib seaborn numpy requests scikit-learn scipy
+```
 
-Key Analytical Capabilities
-Outlier Detection: Highlights anomalies that may represent data errors or high-impact opportunities.
-Correlation Analysis: Identifies strong relationships between variables.
-Clustering: Groups data for targeted insights or segmentation.
-LLM Integration: Provides human-readable narratives to enhance analysis.
+The LLM narrative step calls a hosted proxy and expects an API token:
 
+```bash
+export API_TOKEN="your-api-token-here"
+```
 
+*(Without a token, every other step — stats, outliers, clustering, charts — still runs; only the narrative "Insights" section will note it couldn't reach the LLM.)*
 
-Supported Datasets
-Goodreads: Analyzes book-related data (ratings, reviews, publication years, etc.).
-Happiness: Evaluates global happiness metrics (GDP, life expectancy, emotional well-being).
-Media: Explores content performance metrics (engagement, repeatability, quality).
+## Usage
 
+```bash
+python autolysis.py <path-to-dataset.csv>
+```
 
-Requirements
-Python 3.7+
-Required libraries: pandas, numpy, matplotlib, seaborn, requests, scikit-learn.
+This produces, in the current directory:
+- `README.md` — the full analysis report
+- `correlation_heatmap.png`
+- `<column>_distribution.png` for every numeric column
 
-License
-This project is licensed under the MIT License.
+**Example:**
+```bash
+cd goodreads
+python ../autolysis.py goodreads.csv
+```
 
+## Example output
 
+See [`goodreads/`](./goodreads), [`happiness/`](./happiness), and [`media/`](./media) for full generated reports on real datasets, including the correlation heatmaps and per-column distribution charts Autolysis produces automatically.
 
+## License
 
+MIT — see [LICENSE](./LICENSE).
